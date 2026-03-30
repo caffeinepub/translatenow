@@ -41,4 +41,6 @@ export interface backendInterface {
     getSupportedLanguages(): Promise<Array<Language>>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     translate(text: string, fromLang: string, toLang: string): Promise<string>;
+    trackVisit(): Promise<void>;
+    getVisitCount(): Promise<bigint>;
 }

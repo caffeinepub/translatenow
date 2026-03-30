@@ -1,23 +1,21 @@
-# TranslateNow
+# WorldsTranslator
 
 ## Current State
-New project. Empty backend actor and default frontend scaffold.
+Full translation website. Backend has translate, getRecentTranslations, getSupportedLanguages.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Full translation website with landing page + functional translation widget
-- Backend: store translation history per session, support language pairs
-- Frontend: hero section, translation widget (input/output cards with language selectors), supported languages section, key features section, footer
-- HTTP outcall to a free translation API (MyMemory) for actual translation
-- Copy to clipboard, swap languages, character counter
+- Backend: visitCount stable var, trackVisit() update, getVisitCount() query
+- Frontend: call trackVisit on mount, show visitor count in footer
 
 ### Modify
-- N/A (new project)
+- Footer badge to show live visit count
 
 ### Remove
-- N/A
+- Nothing
 
 ## Implementation Plan
-1. Backend: HTTP outcall to MyMemory translation API, store recent translations
-2. Frontend: Full landing page matching design preview - nav, hero, translator widget, features, footer
+1. Add stable visitCount to main.mo
+2. Add trackVisit and getVisitCount functions
+3. Update frontend to call trackVisit on load and display count

@@ -20,15 +20,18 @@ import {
   Languages,
   Loader2,
   Share2,
+  Users,
   Volume2,
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   useGetRecentTranslations,
   useGetSupportedLanguages,
+  useGetVisitCount,
+  useTrackVisit,
   useTranslate,
 } from "./hooks/useQueries";
 
@@ -113,6 +116,19 @@ function TranslateApp() {
   const { data: recentTranslations, isLoading: histLoading } =
     useGetRecentTranslations();
   const translateMutation = useTranslate();
+  const { data: visitCount } = useGetVisitCount();
+  const trackVisitMutation = useTrackVisit();
+
+  useEffect(() => {
+    if (!sessionStorage.getItem("visited")) {
+      trackVisitMutation.mutate(undefined, {
+        onSuccess: () => {
+          sessionStorage.setItem("visited", "1");
+          queryClient.invalidateQueries({ queryKey: ["visitCount"] });
+        },
+      });
+    }
+  }, [trackVisitMutation]);
 
   const langs =
     languages && languages.length > 0 ? languages : FALLBACK_LANGUAGES;
@@ -764,6 +780,15 @@ function TranslateApp() {
                 className="text-xs bg-white/10 text-white/70 border-white/20"
               >
                 <Share2 className="w-3 h-3 mr-1" /> 100+ Languages
+              </Badge>
+              <Badge
+                variant="secondary"
+                className="text-xs bg-white/10 text-white/70 border-white/20"
+                data-ocid="footer.visitors.panel"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                {visitCount !== undefined ? visitCount.toString() : "..."}{" "}
+                visitors
               </Badge>
             </div>
           </div>

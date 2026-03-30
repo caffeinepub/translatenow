@@ -21,11 +21,20 @@ actor {
   let translations = List.empty<Translation>();
   let maxTranslations = 20;
 
+  stable var visitCount : Nat = 0;
+
+  public func trackVisit() : async () {
+    visitCount += 1;
+  };
+
+  public query func getVisitCount() : async Nat {
+    visitCount;
+  };
+
   public shared ({ caller }) func translate(text : Text, fromLang : Text, toLang : Text) : async Text {
     let url = "https://api.mymemory.translated.net/get?q=" # text # "&langpair=" # fromLang # "|" # toLang;
-    let responseText = await OutCall.httpGetRequest(url, [], transform); // JSON response as Text
+    let responseText = await OutCall.httpGetRequest(url, [], transform);
 
-    // The translation parsing is handled in the frontend.
     let translation : Translation = {
       text;
       fromLang;
