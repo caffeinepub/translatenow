@@ -25,7 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   useGetRecentTranslations,
@@ -110,6 +110,8 @@ function TranslateApp() {
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("es");
   const [translatedText, setTranslatedText] = useState("");
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: languages, isLoading: langsLoading } =
     useGetSupportedLanguages();
@@ -130,6 +132,40 @@ function TranslateApp() {
     }
   }, [trackVisitMutation]);
 
+  const runTranslation = useCallback(
+    async (text: string, from: string, to: string) => {
+      try {
+        const result = await translateMutation.mutateAsync({
+          text,
+          fromLang: from,
+          toLang: to,
+        });
+        setTranslatedText(result);
+      } catch {
+        toast.error("Translation failed. Please try again.");
+      }
+    },
+    [translateMutation],
+  );
+
+  // Debounced auto-translate
+  useEffect(() => {
+    if (!sourceText.trim()) {
+      setIsDebouncing(false);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      return;
+    }
+    setIsDebouncing(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setIsDebouncing(false);
+      runTranslation(sourceText, sourceLang, targetLang);
+    }, 600);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [sourceText, sourceLang, targetLang, runTranslation]);
+
   const langs =
     languages && languages.length > 0 ? languages : FALLBACK_LANGUAGES;
 
@@ -145,16 +181,10 @@ function TranslateApp() {
       toast.error("Please enter some text to translate.");
       return;
     }
-    try {
-      const result = await translateMutation.mutateAsync({
-        text: sourceText,
-        fromLang: sourceLang,
-        toLang: targetLang,
-      });
-      setTranslatedText(result);
-    } catch {
-      toast.error("Translation failed. Please try again.");
-    }
+    // Cancel any pending debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setIsDebouncing(false);
+    await runTranslation(sourceText, sourceLang, targetLang);
   };
 
   const handleCopy = () => {
@@ -184,7 +214,7 @@ function TranslateApp() {
           <div className="flex items-center gap-2">
             <Globe className="w-6 h-6 text-primary" />
             <span className="text-xl font-bold tracking-tight">
-              TranslateNow
+              WorldsTranslator
             </span>
           </div>
           <nav
@@ -379,21 +409,41 @@ function TranslateApp() {
                       )}
                     </SelectContent>
                   </Select>
-                  <Button
-                    className="bg-primary hover:bg-teal-hover text-white font-semibold px-5 transition-all"
-                    onClick={handleTranslate}
-                    disabled={translateMutation.isPending || !sourceText.trim()}
-                    data-ocid="translator.translate.button"
-                  >
-                    {translateMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Translating...
-                      </>
-                    ) : (
-                      "Translate"
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <AnimatePresence>
+                      {isDebouncing && (
+                        <motion.span
+                          key="debounce-indicator"
+                          initial={{ opacity: 0, x: 6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 6 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center gap-1 text-xs text-muted-foreground"
+                          data-ocid="translator.loading_state"
+                        >
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Auto-translating...
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                    <Button
+                      className="bg-primary hover:bg-teal-hover text-white font-semibold px-5 transition-all"
+                      onClick={handleTranslate}
+                      disabled={
+                        translateMutation.isPending || !sourceText.trim()
+                      }
+                      data-ocid="translator.translate.button"
+                    >
+                      {translateMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Translating...
+                        </>
+                      ) : (
+                        "Translate"
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div
@@ -407,7 +457,6 @@ function TranslateApp() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        data-ocid="translator.loading_state"
                       >
                         <Skeleton className="h-4 w-3/4 mb-2" />
                         <Skeleton className="h-4 w-1/2 mb-2" />
@@ -632,7 +681,7 @@ function TranslateApp() {
               <div className="flex items-center gap-2 mb-4">
                 <Globe className="w-5 h-5 text-primary" />
                 <span className="text-white font-bold text-lg">
-                  TranslateNow
+                  WorldsTranslator
                 </span>
               </div>
               <p className="text-sm leading-relaxed">
